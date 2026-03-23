@@ -1,0 +1,38 @@
+{
+  "broker": {
+    "host": "live.ctraderapi.com",
+    "port": 5035
+  },
+  "symbols": {
+    "primary": "XAUUSD",
+    "correlations": ["XAGUSD", "EURUSD", "US500", "USDX", "XTIUSD"]
+  },
+  "aggregator": {
+    "bucketMs": 100
+  },
+  "delta": {
+    "spikeThreshold": 2.5,
+    "flipMinVelocity": 500,
+    "rollingWindow": 200
+  },
+  "correlation": {
+    "windowSec": 60
+  },
+  "audio": {
+    "masterVolume": 0.7,
+    "scaleWithSize": true
+  },
+  "ui": {
+    "bucketDisplay": "60s",
+    "alertMaxEntries": 200
+  },
+  "server": {
+    "port": 3001
+  },
+  "mock": {
+    "enabled": true,
+    "tickRateHz": 100,
+    "basePrice": 2340.0,
+    "spreadPips": 3
+  }
+}

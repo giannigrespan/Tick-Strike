@@ -1,0 +1,21 @@
+{
+  "name": "desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PitStrike Electron Desktop Shell",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "electron dist/main.js",
+    "build": "tsc --project tsconfig.json",
+    "package": "electron-builder"
+  },
+  "dependencies": {
+    "electron-updater": "^6.1.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.4.5"
+  }
+}
