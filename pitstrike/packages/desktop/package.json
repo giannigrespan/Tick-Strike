@@ -17,5 +17,37 @@
     "electron": "^28.3.3",
     "electron-builder": "^24.13.3",
     "typescript": "^5.4.5"
+  },
+  "build": {
+    "appId": "com.pitstrike.app",
+    "productName": "PitStrike",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "../../frontend/dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../../backend/dist",
+        "to": "backend"
+      },
+      {
+        "from": "../../../config.json",
+        "to": "config.json"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.finance",
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Finance"
+    }
   }
 }

@@ -7,7 +7,9 @@
     "dev:backend": "pnpm --filter backend dev",
     "dev:frontend": "pnpm --filter frontend dev",
     "dev": "concurrently \"pnpm dev:backend\" \"pnpm dev:frontend\"",
-    "build": "pnpm --filter backend build && pnpm --filter frontend build",
+    "dev:desktop": "pnpm --filter desktop build && pnpm --filter desktop dev",
+    "dev:all": "concurrently \"pnpm dev:backend\" \"pnpm dev:frontend\" \"pnpm dev:desktop\"",
+    "build": "pnpm --filter backend build && pnpm --filter frontend build && pnpm --filter desktop build",
     "test": "pnpm --filter backend test",
     "lint": "pnpm -r lint",
     "format": "prettier --write \"packages/**/*.{ts,tsx,json}\""
