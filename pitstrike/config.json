@@ -1,7 +1,19 @@
 {
   "broker": {
-    "host": "live.ctraderapi.com",
-    "port": 5035
+    "host": "live-uk-eqx-01.p.c-trader.com",
+    "port": 5211,
+    "ssl": true,
+    "senderCompID": "live.blackbull.8076611",
+    "targetCompID": "cServer",
+    "senderSubID": "QUOTE",
+    "symbolMap": {
+      "US500":  "US500Cash",
+      "USDX":   "USDX",
+      "XAUUSD": "XAUUSD",
+      "XAGUSD": "XAGUSD",
+      "EURUSD": "EURUSD",
+      "XTIUSD": "XTIUSD"
+    }
   },
   "symbols": {
     "primary": "XAUUSD",
@@ -30,7 +42,7 @@
     "port": 3001
   },
   "mock": {
-    "enabled": true,
+    "enabled": false,
     "tickRateHz": 100,
     "basePrice": 2340.0,
     "spreadPips": 3

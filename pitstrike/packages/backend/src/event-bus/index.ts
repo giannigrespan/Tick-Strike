@@ -13,8 +13,10 @@ import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { EventEmitter } from 'node:events';
 import express, { type Request, type Response } from 'express';
 import { MockFeed } from '../mock-feed.js';
+import { LiveFixFeed } from '../live-fix-feed.js';
 import { TickAggregator } from '../tick-aggregator/index.js';
 import type { RawTick, TickBucket, SSEEventType } from '../types.js';
 
@@ -23,11 +25,23 @@ const CONFIG_PATH = join(__dirname, '../../../../config.json');
 
 // ── Load config ───────────────────────────────────────────────────────────────
 
+interface BrokerConfig {
+  host: string;
+  port: number;
+  ssl?: boolean;
+  senderCompID: string;
+  targetCompID: string;
+  senderSubID: string;
+  symbolMap?: Record<string, string>;
+}
+
 interface PitStrikeConfig {
   server: { port: number };
   aggregator: { bucketMs: number };
   mock: { enabled: boolean; tickRateHz: number };
   delta: { spikeThreshold: number; flipMinVelocity: number; rollingWindow: number };
+  broker?: BrokerConfig;
+  symbols?: { primary: string; correlations: string[] };
 }
 
 function loadConfig(): PitStrikeConfig {
@@ -226,14 +240,47 @@ app.get('/config', (_req: Request, res: Response) => {
   }
 });
 
-// ── Bootstrap mock feed + aggregator ─────────────────────────────────────────
+// ── Build feed (live or mock) ─────────────────────────────────────────────────
 
 const aggregator = new TickAggregator({ bucketMs: config.aggregator.bucketMs });
-const mockFeed = new MockFeed({ tickRateHz: config.mock.tickRateHz });
 
-mockFeed.on('tick', (tick: RawTick) => {
+/** EventEmitter with a 'tick' event — satisfied by both MockFeed and LiveFixFeed */
+let feed: EventEmitter;
+
+if (config.mock?.enabled !== false) {
+  console.log('[event-bus] Using MockFeed');
+  const mock = new MockFeed({ tickRateHz: config.mock?.tickRateHz ?? 100 });
+  feed = mock;
+} else {
+  const b = config.broker;
+  if (!b) throw new Error('[event-bus] mock.enabled=false but no broker config found');
+
+  const password = process.env['FIX_PASSWORD'] ?? '';
+  if (!password) {
+    console.warn('[event-bus] WARNING: FIX_PASSWORD env var not set — Logon will fail');
+  }
+
+  const allSymbols = [
+    config.symbols?.primary ?? 'XAUUSD',
+    ...(config.symbols?.correlations ?? []),
+  ];
+
+  console.log('[event-bus] Using LiveFixFeed →', `${b.host}:${b.port}`);
+  feed = new LiveFixFeed({
+    host: b.host,
+    port: b.port,
+    ssl: b.ssl ?? true,
+    senderCompID: b.senderCompID,
+    targetCompID: b.targetCompID,
+    senderSubID: b.senderSubID,
+    symbolMap: b.symbolMap,
+    password,
+    symbols: allSymbols,
+  });
+}
+
+feed.on('tick', (tick: RawTick) => {
   aggregator.ingest(tick);
-  // Also broadcast raw tick_bucket equivalent on every ingest for low-latency display
 });
 
 aggregator.on('bucket', (bucket: TickBucket) => {
@@ -250,8 +297,14 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`[event-bus] Endpoints: /events  /health  /config`);
 
   aggregator.start();
-  mockFeed.start();
-  console.log(`[event-bus] Mock feed started at ${config.mock.tickRateHz} ticks/s`);
+
+  if (feed instanceof MockFeed) {
+    feed.start();
+    console.log(`[event-bus] Mock feed started at ${config.mock?.tickRateHz ?? 100} ticks/s`);
+  } else {
+    (feed as LiveFixFeed).start();
+    console.log('[event-bus] Live FIX feed connecting…');
+  }
 });
 
 server.on('error', (err: NodeJS.ErrnoException) => {
@@ -261,7 +314,8 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 
 process.on('SIGINT', () => {
   console.log('\n[event-bus] Shutting down...');
-  mockFeed.stop();
+  if (feed instanceof MockFeed) feed.stop();
+  else (feed as LiveFixFeed).stop();
   aggregator.stop();
   server.close(() => process.exit(0));
 });
